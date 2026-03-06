@@ -30,7 +30,8 @@ async def get_coordinates(city_name: str):
             return {
                 "lat": location["lat"],
                 "lon": location["lon"],
-                "display_name": f"{location['name'],} {location.get('state', '')}, {location['country']}"
+                "name": location["name"],
+                "display_name": f"{location['name']} {location.get('state', '')}, {location['country']}" 
             }
         
         except httpx.HTTPStatusError:
@@ -38,7 +39,7 @@ async def get_coordinates(city_name: str):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro Inesperado: {str(e)}")
         
-BASE_URL_WEATHER = "https://api.openweathermap.org/data/2.5/forecast"
+BASE_URL_WEATHER = "https://api.openweathermap.org/data/2.5/weather"
 
 async def get_weather_forecast(lat: float, lon: float):
     params = {
@@ -56,25 +57,16 @@ async def get_weather_forecast(lat: float, lon: float):
 
             data = response.json()
 
-            full_list = data["list"]
-
-            filtered_forecast = [
-                item for item in full_list if "12:00:00" in item["dt_txt"]
-            ]
-
-            current = full_list[0]
-
             return {
                 "current": {
-                    "temp": current["main"]["temp"],
-                    "feels_like": current["main"]["feels_like"],
-                    "temp_min": current["main"]["temp_min"],
-                    "temp_max": current["main"]["temp_max"],
-                    "description": current["weather"][0]["description"],
-                    "icon": current["weather"][0]["icon"],
-                    "pop": current.get("pop", 0) * 100
+                    "temp": data["main"]["temp"],
+                    "feels_like": data["main"]["feels_like"],
+                    "temp_min": data["main"]["temp_min"],
+                    "temp_max": data["main"]["temp_max"],
+                    "description": data["weather"][0]["description"],
+                    "icon": data["weather"][0]["icon"],
+                    "pop": data.get("pop", 0) * 100
                 },
-                "five_days": filtered_forecast 
             }
         
         except Exception as e:

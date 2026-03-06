@@ -24,10 +24,10 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
 
     return {"message": "Usuário criado com sucesso", "username": new_user.username}
 
-@auth_router("/login")
-def login(user: schemas.UserSchema, db: Session = Depends(database.get_db)):
+@auth_router.post("/login")
+def login(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     user_exists = db.query(models.User).filter(models.User.username == user.username).first()
     if not user_exists or not verify_password(user.password, user_exists.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
-    token = create_acess_token(data={"sub": user_exists.email})
+    token = create_acess_token(data={"sub": user_exists.username})
     return {"access_token": token, "token_type": "bearer"}

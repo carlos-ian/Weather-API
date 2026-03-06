@@ -9,7 +9,7 @@ class User(Base):
     username = Column(String, nullable=False, unique=True)
     hashed_password = Column(String, nullable=False)
 
-    searches = relationship("SearchHistory", back_populates="owner")
+    history = relationship("SearchHistory", back_populates="user")
 
 class SearchHistory(Base):
     __tablename__ = "searchHistory"
@@ -22,6 +22,7 @@ class SearchHistory(Base):
     temp_max = Column(Float)
     feels_like = Column(Float)
     rain_prob = Column(Float)
-    condition_slug = Column(String)
     condition_desc = Column(String)
     timestamp = Column(DateTime)
+
+    user = relationship("User", back_populates="history")
