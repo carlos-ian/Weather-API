@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>ClimaApp - Login</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #1557b0; }
+        .toggle-btn { background: none; color: #1a73e8; border: none; font-size: 0.9rem; margin-top: 15px; text-decoration: underline; width: 100%; cursor: pointer; }
+        #message { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="form-title">Login</h2>
+    <input type="text" id="username" placeholder="Usuário">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="handleAuth()" id="main-btn">Entrar</button>
+    <button class="toggle-btn" onclick="toggleForm()" id="toggle-txt">Não tem conta? Cadastre-se</button>
+    <p id="message"></p>
+</div>
+
+<script>
+    let isLogin = true;
+    const API_URL = "http://127.0.0.1:8000/auth";
+
+    function toggleForm() {
+        isLogin = !isLogin;
+        document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Cadastro';
+        document.getElementById('main-btn').innerText = isLogin ? 'Entrar' : 'Cadastrar';
+        document.getElementById('toggle-txt').innerText = isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça Login';
+        document.getElementById('message').innerText = '';
+    }
+
+    async function handleAuth() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const msgElement = document.getElementById('message');
+        const endpoint = isLogin ? '/login' : '/register';
+
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                if (isLogin) {
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('username', username);
+                    msgElement.style.color = 'green';
+                    msgElement.innerText = 'Sucesso! Redirecionando...';
+                    setTimeout(() => window.location.href = 'index.html', 800);
+                } else {
+                    msgElement.style.color = 'green';
+                    msgElement.innerText = 'Cadastro realizado! Faça login.';
+                    toggleForm();
+                }
+            } else {
+                msgElement.style.color = 'red';
+                msgElement.innerText = data.detail || 'Erro na operação';
+            }
+        } catch (error) {
+            msgElement.style.color = 'red';
+            msgElement.innerText = 'Erro ao conectar com o servidor';
+        }
+    }
+</script>
+</body>
+</html>

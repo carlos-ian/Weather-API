@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>ClimaApp - Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; }
+        nav { background: #1a73e8; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .main-content { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .search-section { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
+        .btn-search { background: #1a73e8; color: white; }
+        .weather-card { background: linear-gradient(135deg, #6dd5ed, #2193b0); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; display: none; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; }
+        .btn-update { background: #28a745; color: white; font-size: 0.8rem; margin-right: 5px; }
+        .btn-delete { background: #dc3545; color: white; font-size: 0.8rem; }
+        .logout-btn { background: #ff4757; color: white; padding: 5px 15px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <span id="welcome-msg">Bem-vindo</span>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+</nav>
+
+<div class="main-content">
+    <div class="search-section">
+        <input type="text" id="cityInput" placeholder="Digite o nome da cidade...">
+        <button class="btn-search" onclick="searchWeather()">Buscar Clima</button>
+    </div>
+
+    <div id="weatherDisplay" class="weather-card">
+        <h2 id="displayCity">Cidade</h2>
+        <h1 id="displayTemp">--°C</h1>
+        <p id="displayDesc">Descrição</p>
+        <p>Sensação: <span id="displayFeels">--</span> | Chuva: <span id="displayRain">--</span>%</p>
+    </div>
+
+    <h3>Últimas 3 Pesquisas</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Cidade</th>
+                <th>Temp.</th>
+                <th>Condição</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    document.getElementById('welcome-msg').innerText = `Olá, ${localStorage.getItem('username')}`;
+    const API_BASE = "http://127.0.0.1:8000/weather";
+
+    async function searchWeather() {
+        const city = document.getElementById('cityInput').value;
+        if (!city) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/get_city?city_name=${city}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                showWeather(data);
+                await fetch(`${API_BASE}/post_history?city_name=${city}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadHistory();
+            } else { alert(data.detail); }
+        } catch (e) { console.error(e); }
+    }
+
+    function showWeather(data) {
+        const card = document.getElementById('weatherDisplay');
+        card.style.display = 'block';
+        document.getElementById('displayCity').innerText = data.localizacao.cidade;
+        document.getElementById('displayTemp').innerText = `${Math.round(data.clima.current.temp)}°C`;
+        document.getElementById('displayDesc').innerText = data.clima.current.description;
+        document.getElementById('displayFeels').innerText = `${data.clima.current.feels_like}°C`;
+        document.getElementById('displayRain').innerText = data.clima.current.pop;
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch(`${API_BASE}/recent_history`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const history = await res.json();
+            const body = document.getElementById('historyBody');
+            body.innerHTML = '';
+
+            history.forEach(item => {
+                body.innerHTML += `
+                    <tr>
+                        <td>${item.city_name}</td>
+                        <td>${Math.round(item.temp_current)}°C</td>
+                        <td>${item.condition_desc}</td>
+                        <td>
+                            <button class="btn-update" onclick="updateItem(${item.id})">Atualizar</button>
+                            <button class="btn-delete" onclick="deleteItem(${item.id})">Deletar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function updateItem(id) {
+        await fetch(`${API_BASE}/update_history/${id}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadHistory();
+    }
+
+    async function deleteItem(id) {
+        if (!confirm("Excluir esta pesquisa?")) return;
+        await fetch(`${API_BASE}/delete_history/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadHistory();
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
+
+    loadHistory();
+</script>
+</body>
+</html>
